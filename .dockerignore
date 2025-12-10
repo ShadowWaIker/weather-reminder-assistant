@@ -1,0 +1,43 @@
+# Git 相关
+.git
+.gitignore
+.gitattributes
+
+# 构建输出
+weather-reminder
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试文件
+*_test.go
+weather_test.json
+
+# 文档
+README.md
+*.md
+
+# 脚本文件
+start.sh
+
+# IDE 相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
+logs/
+
+# Docker 相关
+Dockerfile*
+.dockerignore
+
+# 临时文件
+*.tmp
+*.temp
