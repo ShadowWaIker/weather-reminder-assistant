@@ -1,0 +1,31 @@
+weather_api:
+  # 和风天气API密钥
+  api_key: "YOUR_WEATHER_API_KEY"
+  # 城市名称或城市ID，支持中文，如：北京、上海、广州
+  city: "北京"
+  # 和风天气API Host（建议使用，安全性更高）
+  # 获取方式：登录和风天气控制台 -> 设置 -> API Host
+  # 格式如：abc.def.qweatherapi.com
+  api_host: "devapi.qweather.com"  # 默认使用开发版APIHost
+
+bark:
+  # Bark设备密钥（从Bark App获取）
+  device_key: "YOUR_BARK_DEVICE_KEY"
+  # Bark服务器地址（可选，默认使用官方服务器）
+  server_url: "https://api.day.app"
+  # 通知声音（可选，默认alarm）
+  sound: "alarm"
+  # 通知优先级（可选，默认timeSensitive）
+  # 可选值：passive, active, timeSensitive
+  level: "timeSensitive"
+  # 通知分类（可选，默认weather）
+  category: "weather"
+
+app:
+  # 天气检查间隔（可选，默认1小时）
+  # 格式：30m（30分钟）、1h（1小时）、2h（2小时）
+  check_interval: "1h"
+  # 最大重试次数（可选，默认3次）
+  max_retries: 3
+  # 是否显示详细日志（可选，默认true）
+  verbose: true

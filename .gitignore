@@ -1,0 +1,46 @@
+# 配置文件 - 包含个人信息
+config.yaml
+*.yaml
+*.yml
+
+# 编译后的二进制文件
+weather-reminder
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 日志文件
+*.log
+logs/
+
+# 测试数据文件
+weather.json
+weather_test.json
+*.json
+
+# Go 相关
+# 如果有 vendor 目录
+vendor/
+
+# IDE 相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.nfs*
