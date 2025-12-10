@@ -20,8 +20,7 @@ weather_test.json
 *.json
 
 # Go 相关
-# 如果有 vendor 目录
-vendor/
+# vendor/ 目录已被 git 跟踪（vendor 模式）
 
 # IDE 相关
 .vscode/

@@ -1,4 +1,4 @@
-module weather-reminder
+module github.com/ShadowWaIker/weather-reminder-assistant
 
 go 1.20
 

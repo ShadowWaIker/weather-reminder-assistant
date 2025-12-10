@@ -65,7 +65,17 @@ echo "📦 检查依赖包..."
 export GOROOT="/Users/f/go/go1.20.3"
 export PATH="$GOROOT/bin:$PATH"
 export GOPROXY="https://goproxy.cn,direct"
-go mod tidy
+
+# 检查是否应该使用 vendor 模式
+if [ ! -d "vendor" ]; then
+    echo "⚠️  未找到 vendor 目录，正在生成..."
+    echo "💡 提示: 如果您想使用 vendor 模式，请运行: go mod vendor"
+    echo ""
+    go mod tidy
+else
+    echo "✅ 发现 vendor 目录，将使用 vendor 模式"
+    go mod tidy
+fi
 
 echo ""
 echo "??  配置检查:"
@@ -87,7 +97,15 @@ fi
 echo ""
 echo "🚀 编译程序..."
 export GOPROXY="https://goproxy.cn,direct"
-go build -o weather-reminder main.go
+
+# 检查是否使用 vendor 模式
+if [ -d "vendor" ]; then
+    echo "📦 使用 vendor 模式编译..."
+    go build -mod=vendor -o weather-reminder main.go
+else
+    echo "📦 使用标准模式编译..."
+    go build -o weather-reminder main.go
+fi
 
 if [ $? -eq 0 ]; then
     echo "? 编译成功！"
