@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -123,6 +125,7 @@ func main() {
 	// 解析命令行参数
 	once := flag.Bool("once", false, "执行一次检查后退出")
 	test := flag.Bool("test", false, "测试模式，模拟有降水天气")
+	healthcheck := flag.Bool("healthcheck", false, "健康检查模式，检查外部服务连接")
 	flag.Parse()
 
 	// 设置测试模式
@@ -142,6 +145,12 @@ func main() {
 	if *once {
 		log.Printf("执行单次天气检查")
 		checkWeatherAndNotify()
+		return
+	}
+
+	if *healthcheck {
+		log.Printf("执行健康检查")
+		runHealthcheck()
 		return
 	}
 
@@ -231,6 +240,99 @@ func checkWeatherAndNotify() {
 	} else {
 		log.Println("未来3小时内无降水")
 	}
+}
+
+// 检查域名连通性（不消耗API额度）
+func isDomainReachable(domain string, port int) bool {
+	timeout := time.Second * 3
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", domain, port), timeout)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+// 健康检查
+func runHealthcheck() {
+	log.Println("开始健康检查...")
+
+	var hasError bool
+
+	// 检查天气API连接
+	log.Println("检查天气API连接...")
+	if err := checkWeatherAPIHealth(); err != nil {
+		log.Printf("❌ 天气API连接失败: %v", err)
+		hasError = true
+	} else {
+		log.Println("✅ 天气API连接正常")
+	}
+
+	// 检查Bark服务连接
+	log.Println("检查Bark服务连接...")
+	if err := checkBarkAPIHealth(); err != nil {
+		log.Printf("❌ Bark服务连接失败: %v", err)
+		hasError = true
+	} else {
+		log.Println("✅ Bark服务连接正常")
+	}
+
+	if hasError {
+		log.Println("健康检查失败，发现问题")
+		os.Exit(1)
+	} else {
+		log.Println("健康检查通过，所有服务连接正常")
+	}
+}
+
+// 检查天气API健康状态
+func checkWeatherAPIHealth() error {
+	// 解析API Host域名
+	host := config.WeatherAPI.APIHost
+	if host == "" {
+		host = "devapi.qweather.com" // 默认Host
+	}
+
+	// 检查域名解析
+	if !isDomainReachable(host, 443) {
+		return fmt.Errorf("天气API域名 %s 不可达", host)
+	}
+
+	return nil
+}
+
+// 检查Bark API健康状态
+func checkBarkAPIHealth() error {
+	serverURL := config.Bark.ServerURL
+	if serverURL == "" {
+		serverURL = "https://api.day.app" // 默认ServerURL
+	}
+
+	// 解析ServerURL获取域名
+	u, err := url.Parse(serverURL)
+	if err != nil {
+		return fmt.Errorf("解析Bark ServerURL失败: %v", err)
+	}
+
+	// 提取域名
+	domain := u.Hostname()
+	port := u.Port()
+	if port == "" {
+		// 根据协议确定默认端口
+		if u.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+
+	// 检查域名解析和端口连通性
+	portNum, _ := strconv.Atoi(port)
+	if !isDomainReachable(domain, portNum) {
+		return fmt.Errorf("Bark服务域名 %s:%s 不可达", domain, port)
+	}
+
+	return nil
 }
 
 // 城市ID映射表（常用城市）
