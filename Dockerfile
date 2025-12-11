@@ -35,9 +35,6 @@ RUN go build -mod=vendor -ldflags="-w -s" -o weather-reminder main.go
 # 第二阶段：运行时阶段
 FROM alpine:3.18
 
-# 安装 CA 证书和时区数据
-RUN apk add --no-cache ca-certificates tzdata
-
 # 创建非 root 用户
 RUN addgroup -g 1000 weather && \
     adduser -D -s /bin/sh -u 1000 -G weather weather
@@ -51,11 +48,21 @@ COPY --from=builder /app/weather-reminder .
 # 复制配置文件模板
 COPY config.yaml.example ./
 
+# 复制时区配置文件
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# 复制CA证书
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
 # 更改文件所有权
 RUN chown -R weather:weather /app
 
 # 切换到非 root 用户
 USER weather
+
+# 设置时区环境变量（默认使用Asia/Shanghai）
+ENV TZ=Asia/Shanghai
+ENV TZDATA_PATH=/usr/share/zoneinfo
 
 # 暴露端口（如果应用需要）
 # EXPOSE 8080

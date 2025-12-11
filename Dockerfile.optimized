@@ -78,6 +78,10 @@ WORKDIR /app
 # 更改权限
 RUN chown -R 1000:1000 /app
 
+# 设置时区环境变量（默认使用Asia/Shanghai）
+ENV TZ=Asia/Shanghai
+ENV TZDATA_PATH=/usr/share/zoneinfo
+
 # 切换到非 root 用户
 USER 1000
 
