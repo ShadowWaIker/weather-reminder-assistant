@@ -238,7 +238,7 @@ func checkWeatherAndNotify() {
 			log.Println("通知发送成功")
 		}
 	} else {
-		log.Println("未来3小时内无降水")
+		log.Println("未检测到降水预报")
 	}
 }
 
@@ -617,8 +617,10 @@ func getPrecipitationForecast(weather *WeatherResponse) PrecipitationForecast {
 		}
 	}
 
-	// 当前无降水，检查逐小时预报
+	// 根据当前时间决定检查策略
 	now := time.Now()
+	currentHour := now.Hour()
+
 	var precipitationPeriods []struct {
 		startTime string
 		endTime   string
@@ -626,35 +628,83 @@ func getPrecipitationForecast(weather *WeatherResponse) PrecipitationForecast {
 		precip    string
 	}
 
-	for _, hour := range weather.Hourly {
-		hourTime, err := time.Parse("2006-01-02T15:04-07:00", hour.FxTime)
-		if err != nil {
-			log.Printf("解析时间失败: %v", err)
-			continue
-		}
+	// 早上7点至下午4点：检查未来6小时内的降水
+	if currentHour >= 7 && currentHour < 16 {
+		log.Printf("当前时间 %d:%02d，使用6小时内检查策略", currentHour, now.Minute())
 
-		timeDiff := hourTime.Sub(now)
-		log.Printf("检查时间: %s, 相差: %v", hour.FxTime, timeDiff)
-
-		// 如果在未来3小时内
-		if timeDiff > 0 && timeDiff <= 3*time.Hour {
-			log.Printf("进入检查区间: %s, 天气: %s, 降水量: %s", hour.FxTime, hour.Text, hour.Precip)
-
-			// 使用统一检查函数
-			if checkWeatherPrecipitation(hour.Text, hour.Precip) {
-				log.Printf("检测到降水: %s, 降水量: %smm", hour.Text, hour.Precip)
-				precipitationPeriods = append(precipitationPeriods, struct {
-					startTime string
-					endTime   string
-					weather   string
-					precip    string
-				}{
-					startTime: hourTime.Format("15:04"),
-					endTime:   hourTime.Format("15:04"),
-					weather:   hour.Text,
-					precip:    hour.Precip,
-				})
+		for _, hour := range weather.Hourly {
+			hourTime, err := time.Parse("2006-01-02T15:04-07:00", hour.FxTime)
+			if err != nil {
+				log.Printf("解析时间失败: %v", err)
+				continue
 			}
+
+			timeDiff := hourTime.Sub(now)
+			log.Printf("检查时间: %s, 相差: %v", hour.FxTime, timeDiff)
+
+			// 如果在未来6小时内
+			if timeDiff > 0 && timeDiff <= 6*time.Hour {
+				log.Printf("进入检查区间: %s, 天气: %s, 降水量: %s", hour.FxTime, hour.Text, hour.Precip)
+
+				// 使用统一检查函数
+				if checkWeatherPrecipitation(hour.Text, hour.Precip) {
+					log.Printf("检测到降水: %s, 降水量: %smm", hour.Text, hour.Precip)
+					precipitationPeriods = append(precipitationPeriods, struct {
+						startTime string
+						endTime   string
+						weather   string
+						precip    string
+					}{
+						startTime: hourTime.Format("15:04"),
+						endTime:   hourTime.Format("15:04"),
+						weather:   hour.Text,
+						precip:    hour.Precip,
+					})
+				}
+			}
+		}
+	} else if currentHour >= 16 && currentHour < 21 {
+		// 下午4点至晚上9点：检查第二天是否有降水
+		log.Printf("当前时间 %d:%02d，使用次日降水检查策略", currentHour, now.Minute())
+
+		// 获取明天的开始时间（00:00）
+		tomorrow := now.AddDate(0, 0, 1)
+		tomorrowStart := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, now.Location())
+
+		// 检查明天0点到23点的降水情况
+		for _, hour := range weather.Hourly {
+			hourTime, err := time.Parse("2006-01-02T15:04-07:00", hour.FxTime)
+			if err != nil {
+				log.Printf("解析时间失败: %v", err)
+				continue
+			}
+
+			// 检查是否是明天的时间
+			if hourTime.Equal(tomorrowStart) || (hourTime.After(tomorrowStart) && hourTime.Before(tomorrowStart.AddDate(0, 0, 1))) {
+				log.Printf("检查次日时间: %s, 天气: %s, 降水量: %s", hour.FxTime, hour.Text, hour.Precip)
+
+				// 使用统一检查函数
+				if checkWeatherPrecipitation(hour.Text, hour.Precip) {
+					log.Printf("检测到次日降水: %s, 降水量: %smm", hour.Text, hour.Precip)
+					precipitationPeriods = append(precipitationPeriods, struct {
+						startTime string
+						endTime   string
+						weather   string
+						precip    string
+					}{
+						startTime: hourTime.Format("15:04"),
+						endTime:   hourTime.Format("15:04"),
+						weather:   hour.Text,
+						precip:    hour.Precip,
+					})
+				}
+			}
+		}
+	} else {
+		// 其他时间段（21:00-7:00）：不进行检查
+		log.Printf("当前时间 %d:%02d，跳过检查（休息时间）", currentHour, now.Minute())
+		return PrecipitationForecast{
+			WillPrecipitate: false,
 		}
 	}
 
